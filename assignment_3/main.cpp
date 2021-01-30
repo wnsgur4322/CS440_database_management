@@ -1,9 +1,9 @@
 #include <iostream>
-#include <string>
+#include <cstdio>
 
-using namespace utd;
+using namespace std;
 
 int main(){
-        printf('hello');
-        
+        printf("hello\n");
+        return 0;
 }
