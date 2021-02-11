@@ -1,8 +1,16 @@
 #include <iostream>
 #include <cstdio>
 #include <list>
+#include <unordered_map>
 
 using namespace std;
+hash<string> hasher;
+
+struct Employee {
+    string name;
+    int age;
+    float salary;
+};
 
 class Hash {
     int BUCKET;    // No. of buckets
@@ -57,12 +65,24 @@ void Hash::deleteItem(int key){
 // function to display hash table
 void Hash::displayHash() {
     for (int i = 0; i < BUCKET; i++) {
-    cout << i;
-
-        for (auto x : table[i])
+        cout << i;
+/***
+        for (auto x : table[i]) {
             cout << " --> " << x;
             cout << endl;
-  }
+        }
+***/
+    }
+}
+
+int hashStr(string id) {
+    int hash = (int) hasher(id);
+    return hash;
+}
+
+int lastNBits(int hash, int N) {
+    int lastN = hash & ((1 << N) - 1);
+    return lastN;
 }
 
 // Driver program
@@ -81,7 +101,10 @@ int main(){
   h.deleteItem(12);
 
   // display the Hash table
-  h.displayHash();
+  //h.displayHash();
+  int hash = hashStr("test1");
+  printf("%d\n", hash);
+  printf("%d\n", lastNBits(hash,2));
 
   return 0;
 }
