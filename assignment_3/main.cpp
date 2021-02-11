@@ -7,10 +7,48 @@ using namespace std;
 hash<string> hasher;
 
 struct Employee {
+    string id;
     string name;
     int age;
     float salary;
 };
+
+class Block {
+    int size = 4096;
+    int bucket;
+    int numEmployees;
+    int totalSize;
+    list<Employee> employees;
+    float percentUsed;
+    public:
+        Block(list<Employee> employees, int bucket, int numEmployees);
+        Block(int bucket);
+        void insertEmployee(Employee employee);
+};
+
+Block::Block(int bucket) {
+    this->bucket = bucket;
+    this->totalSize = 0;
+    this->numEmployees = 0;
+}
+
+Block::Block(list<Employee> employees, int bucket, int numEmployees) {
+    this->employees = employees;
+    this->numEmployees = numEmployees;
+    this->bucket = bucket;
+    this->totalSize = 0;
+    for(auto i = employees.begin(); i != employees.end(); i++) {
+        this->totalSize += sizeof(*i);
+    }
+    this->percentUsed = ((float)this->totalSize)/this->size;
+}
+
+void Block::insertEmployee(Employee employee) {
+    this->numEmployees++;
+    this->employees.push_back(employee);
+    this->totalSize += sizeof(employee);
+    this->percentUsed = ((float)this->totalSize)/this->size;
+}
 
 class Hash {
     int BUCKET;    // No. of buckets
@@ -62,16 +100,20 @@ void Hash::deleteItem(int key){
     table[index].erase(i);
 }
 
+void writeDataFile(Block* data) {
+    
+}
+
 // function to display hash table
 void Hash::displayHash() {
     for (int i = 0; i < BUCKET; i++) {
         cout << i;
-/***
+
         for (auto x : table[i]) {
             cout << " --> " << x;
             cout << endl;
         }
-***/
+
     }
 }
 
