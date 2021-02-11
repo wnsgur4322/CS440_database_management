@@ -2,6 +2,10 @@
 #include <cstdio>
 #include <list>
 #include <unordered_map>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <vector>
 
 using namespace std;
 hash<string> hasher;
@@ -127,6 +131,25 @@ int lastNBits(int hash, int N) {
     return lastN;
 }
 
+// Read csv file
+void read_csv(){ 
+	// File pointer 
+	fstream f;
+    // Read the Data from the file 
+	// as String Vector 
+	vector<string> row; 
+	string line, word, temp;
+
+	// Open an existing file 
+	f.open("Employees.csv", ios::in);
+
+    while (f){
+        getline(f,line);
+        cout << line << "\n";
+    }
+    //put values in list (later) 
+}
+
 // Driver program
 int main(){
   // array that contains keys to be mapped
@@ -147,6 +170,8 @@ int main(){
   int hash = hashStr("test1");
   printf("%d\n", hash);
   printf("%d\n", lastNBits(hash,2));
+
+  read_csv();
 
   return 0;
 }
