@@ -6,6 +6,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <functional>
 #include <math.h> 
 
 using namespace std;
@@ -21,8 +22,8 @@ struct Employee {
 struct Block {
     int size_used = 0;
     Block* overflow = NULL;
-}
-
+};
+/***
 class Block {
     int size = 4096;
     int bucket;
@@ -60,6 +61,7 @@ void Block::insertEmployee(Employee employee) {
     this->totalSize += sizeof(employee);
     this->percentUsed = ((float)this->totalSize)/this->size;
 }
+***/
 
 class Hash {
     int BUCKET;    // No. of buckets
@@ -129,37 +131,39 @@ int hashStr(string id) {
     return hash;
 }
 
-int lastNBits(int hash, int N) {
-    int lastN = hash & ((1 << N) - 1);
-    return lastN;
+int lastIBits(int hash, int i, int n) {
+    int lastI = hash & ((1 << i) - 1);
+    if(lastI > n)
+        lastI = lastI ^ (1 << i);
+    return lastI;
 }
 
-void add_record(int* i, int* n, string record, int index, list<Block> Blocks) {
+void add_record(string record, int index, vector<Block>* Blocks) {
     int line_number = 0;
     string line;
-    auto it = next(Blocks.begin(),index - 1);
-    fstream file ("data.txt");
+    Block* it = &(Blocks->at(index));
+    fstream file ("data.txt", ios::app);
     while (getline(file, line)) {
         if(line_number == index) {
             int num_blocks = 1;
-            curr_block = *it;
-            int bucket_size = curr_block.size_used;
+            Block* curr_block = it;
+            int bucket_size = curr_block->size_used;
             while(curr_block->overflow != NULL) {
                 curr_block = curr_block->overflow;
-                bucket_size += curr_block.size_used;
+                bucket_size += curr_block->size_used;
                 num_blocks += 1;
             }
-            if sizeof(record) + bucket_size > num_blocks*4096 {
+            if(sizeof(record) + bucket_size > num_blocks*4096) {
                 Block* new_block = new Block;
-                new_block.size_used = sizeof(record);
-                curr_block->overflow = new_block
+                new_block->size_used = sizeof(record);
+                curr_block->overflow = new_block;
                 while(file.peek()!='\n') {
-                    file.seekg(file.tellg(),1);
+                    file.seekg(1, ios::cur);
                 }
                 file << "|" << record;
             } else {
                 while(file.peek()!='\n') {
-                    file.seekg(file.tellg(),1);
+                    file.seekg(1, ios::cur);
                 }
                 curr_block->size_used += sizeof(record);
                 file << ";" << record;
@@ -168,17 +172,28 @@ void add_record(int* i, int* n, string record, int index, list<Block> Blocks) {
             line_number++;
         }
     }
-    
+}
+
+void calculateIandN(int& i, int& n, vector<Block>** Blocks, int index, vector<string> &id, vector<int> &sizes) {
+    Block* it = &((*Blocks)->at(index));
+    Block* curr_block = it;
+    int num_blocks = 1;
+    int bucket_size = curr_block->size_used;
+    while(curr_block->overflow != NULL) {
+        curr_block = curr_block->overflow;
+        bucket_size += curr_block->size_used;
+        num_blocks += 1;
+    }
     float percent_used = 0;
     int total_buckets = 0;
-    for(auto i = Blocks.begin(); i != Block.end(); i++) {
+    for(int curr = 0; curr != (*Blocks)->size(); curr++) {
         int size = 0;
         int num_blocks = 1;
-        Block curr_block = *i
-        size += curr_block.size_used;
+        Block* curr_block = &((*Blocks)->at(curr));
+        size += curr_block->size_used;
         while(curr_block->overflow != NULL) {
             curr_block = curr_block->overflow;
-            size += curr_block.size_used;
+            size += curr_block->size_used;
             num_blocks += 1;
         }
         
@@ -186,16 +201,36 @@ void add_record(int* i, int* n, string record, int index, list<Block> Blocks) {
         total_buckets += 1;
     }
     percent_used /= total_buckets;
-    if percentUsed > 0.8 {
-        *n = (*n) + 1;
-        if(pow((*i) + 1,2) < n)
-            *i = (*i) + 1;
+    if(percent_used > 0.8) {
+        n++;
+        if(pow(i + 1,2) < n) {
+            i++;
+            vector<Block> new_blocks(n);
+            for(int curr = 0; curr < id.size(); curr++) {
+                int index = lastIBits(hashStr(id.at(curr)), i, n);
+                Block* curr_block = &(new_blocks.at(index));
+                if (curr_block->size_used + sizes.at(curr) > 4096) {
+                    while(curr_block->size_used + sizes.at(curr) > 4096) {
+                        if(curr_block->overflow) {
+                            curr_block = curr_block->overflow;
+                        } else {
+                            Block* new_block;
+                            curr_block->overflow = new_block;
+                            curr_block = curr_block->overflow;
+                        }
+                    }
+                }
+                curr_block->size_used += sizes.at(curr);
+            }
         
+        
+            (*Blocks) = &new_blocks;
+        }
     }
 }
 
 // Read csv file
-void read_csv(int &file_lines, vector<string> &id, vector<string> &name, vector<string> &bio, vector<string> &manager_id){ 
+void read_csv(int &file_lines, vector<string> &id, vector<string> &name, vector<string> &bio, vector<string> &manager_id, vector<int> &sizes, Hash* h, int& i, int& n, vector<Block>* Blocks){ 
 	// File pointer 
 	fstream f;
     // Read the Data from the file 
@@ -206,6 +241,7 @@ void read_csv(int &file_lines, vector<string> &id, vector<string> &name, vector<
 	// Open an existing file 
 	f.open("Employees.csv", ios::in);
 
+    int num_lines = 0;
     while (getline(f,line)){
         file_lines += 1;
         //cout << line << "\n";
@@ -222,8 +258,30 @@ void read_csv(int &file_lines, vector<string> &id, vector<string> &name, vector<
         name.push_back(temp.at(1));
         bio.push_back(temp.at(2));
         manager_id.push_back(temp.at(3));
+        sizes.push_back(16 + ((int)sizeof(temp.at(2))) + ((int) sizeof(temp.at(3))));
+        num_lines++;
     }
     
+    
+    for(int line_num = 0; line_num < num_lines; line_num++){
+        int index = lastIBits(hashStr(id.at(line_num)), i, n);
+        calculateIandN(i, n, &Blocks, line_num, id, sizes);
+    }
+    
+    vector<Block> written_blocks(n);
+    for(int line_num = 0; line_num < num_lines; line_num++){
+        int index = lastIBits(hashStr(id.at(line_num)), i, n);
+        string record = "";
+        record.append(id.at(line_num));
+        record.append(",");
+        record.append(name.at(line_num));
+        record.append(",");
+        record.append(bio.at(line_num));
+        record.append(",");
+        record.append(manager_id.at(line_num));
+        add_record(record, index, &written_blocks);
+        
+    }
 }
 
 void writeDataFile(Block* data) {
@@ -244,7 +302,12 @@ int main(){
   int n = sizeof(a)/sizeof(a[0]);
   int file_lines = 0;
   vector<string> id, name, bio, manager_id; 
-  read_csv(file_lines, id, name, bio, manager_id);
+  vector<int> sizes;
+  int i = 2;
+  n = 3;
+  Hash* h = new Hash(n);
+  vector<Block> Blocks(n);
+  read_csv(file_lines, id, name, bio, manager_id, sizes, h, i, n, &Blocks);
 
   // checking vectors and the number of file line
   printf("%d\n", file_lines);
@@ -254,25 +317,21 @@ int main(){
   }
 
   // insert the keys into the hash table
-  Hash h(file_lines + 1);   // 7 is count of buckets in
+  //Hash h(file_lines + 1);   // 7 is count of buckets in
                // hash table
-  for (int i = 0; i < n; i++)
-    h.insertItem(a[i]);
+  //for (int i = 0; i < n; i++)
+  //  h.insertItem(a[i]);
 
   // delete 12 from hash table
-  h.deleteItem(12);
+  //h.deleteItem(12);
 
   // display the Hash table
   //h.displayHash();
   int hash = hashStr("test1");
   printf("%d\n", hash);
-  printf("%d\n", lastNBits(hash,2));
+  printf("%d\n", lastIBits(hash,2,n));
 
-  read_csv();
-  
-  int i = 0;
-  n = 0;
-  list<Block> Blocks;
+  //read_csv();
 
   return 0;
 }
