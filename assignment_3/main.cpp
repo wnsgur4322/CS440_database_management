@@ -6,6 +6,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <math.h> 
 
 using namespace std;
 hash<string> hasher;
@@ -17,11 +18,17 @@ struct Employee {
     float salary;
 };
 
+struct Block {
+    int size_used = 0;
+    Block* overflow = NULL;
+}
+
 class Block {
     int size = 4096;
     int bucket;
     int numEmployees;
     int totalSize;
+    Block* overflow;
     list<Employee> employees;
     float percentUsed;
     public:
@@ -35,7 +42,7 @@ Block::Block(int bucket) {
     this->totalSize = 0;
     this->numEmployees = 0;
 }
-
+ 
 Block::Block(list<Employee> employees, int bucket, int numEmployees) {
     this->employees = employees;
     this->numEmployees = numEmployees;
@@ -131,6 +138,66 @@ int lastNBits(int hash, int N) {
     return lastN;
 }
 
+void add_record(int* i, int* n, string record, int index, list<Block> Blocks) {
+    int line_number = 0;
+    string line;
+    auto it = next(Blocks.begin(),index - 1);
+    fstream file ("data.txt");
+    while (getline(file, line)) {
+        if(line_number == index) {
+            int num_blocks = 1;
+            curr_block = *it;
+            int bucket_size = curr_block.size_used;
+            while(curr_block->overflow != NULL) {
+                curr_block = curr_block->overflow;
+                bucket_size += curr_block.size_used;
+                num_blocks += 1;
+            }
+            if sizeof(record) + bucket_size > num_blocks*4096 {
+                Block* new_block = new Block;
+                new_block.size_used = sizeof(record);
+                curr_block->overflow = new_block
+                while(file.peek()!='\n') {
+                    file.seekg(file.tellg(),1);
+                }
+                file << "|" << record;
+            } else {
+                while(file.peek()!='\n') {
+                    file.seekg(file.tellg(),1);
+                }
+                curr_block->size_used += sizeof(record);
+                file << ";" << record;
+            }
+            
+            line_number++;
+        }
+    }
+    
+    float percent_used = 0;
+    int total_buckets = 0;
+    for(auto i = Blocks.begin(); i != Block.end(); i++) {
+        int size = 0;
+        int num_blocks = 1;
+        Block curr_block = *i
+        size += curr_block.size_used;
+        while(curr_block->overflow != NULL) {
+            curr_block = curr_block->overflow;
+            size += curr_block.size_used;
+            num_blocks += 1;
+        }
+        
+        percent_used += ((float) size)/(4096 * num_blocks);
+        total_buckets += 1;
+    }
+    percent_used /= total_buckets;
+    if percentUsed > 0.8 {
+        *n = (*n) + 1;
+        if(pow((*i) + 1,2) < n)
+            *i = (*i) + 1;
+        
+    }
+}
+
 // Read csv file
 void read_csv(){ 
 	// File pointer 
@@ -155,7 +222,7 @@ int main(){
   // array that contains keys to be mapped
   int a[] = {15, 11, 27, 8, 12};
   int n = sizeof(a)/sizeof(a[0]);
-
+  
   // insert the keys into the hash table
   Hash h(7);   // 7 is count of buckets in
                // hash table
@@ -172,6 +239,10 @@ int main(){
   printf("%d\n", lastNBits(hash,2));
 
   read_csv();
+  
+  int i = 0;
+  n = 0;
+  list<Block> Blocks;
 
   return 0;
 }
