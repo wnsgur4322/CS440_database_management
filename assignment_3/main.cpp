@@ -111,10 +111,6 @@ void Hash::deleteItem(int key){
     table[index].erase(i);
 }
 
-void writeDataFile(Block* data) {
-    
-}
-
 // function to display hash table
 void Hash::displayHash() {
     for (int i = 0; i < BUCKET; i++) {
@@ -199,32 +195,66 @@ void add_record(int* i, int* n, string record, int index, list<Block> Blocks) {
 }
 
 // Read csv file
-void read_csv(){ 
+void read_csv(int &file_lines, vector<string> &id, vector<string> &name, vector<string> &bio, vector<string> &manager_id){ 
 	// File pointer 
 	fstream f;
     // Read the Data from the file 
 	// as String Vector 
-	vector<string> row; 
+	//vector<int> id, manager_id; 
 	string line, word, temp;
 
 	// Open an existing file 
 	f.open("Employees.csv", ios::in);
 
-    while (f){
-        getline(f,line);
-        cout << line << "\n";
+    while (getline(f,line)){
+        file_lines += 1;
+        //cout << line << "\n";
+
+        vector<string> temp;
+        string substr;
+        stringstream ss(line);
+
+        while(getline(ss, substr, ',')) {
+            //cout << substr << "\n";
+            temp.push_back(substr);
+        }
+        id.push_back(temp.at(0));
+        name.push_back(temp.at(1));
+        bio.push_back(temp.at(2));
+        manager_id.push_back(temp.at(3));
     }
-    //put values in list (later) 
+    
 }
+
+void writeDataFile(Block* data) {
+    fstream out;
+    
+    out.open("EmployeeIndex.csv", ios::out | ios::app);
+    
+    // Wirte the data to the file
+    out << data << "," << "\n";
+    
+}
+
 
 // Driver program
 int main(){
   // array that contains keys to be mapped
   int a[] = {15, 11, 27, 8, 12};
   int n = sizeof(a)/sizeof(a[0]);
+  int file_lines = 0;
+  vector<string> id, name, bio, manager_id; 
+  read_csv(file_lines, id, name, bio, manager_id);
+
+  // checking vectors and the number of file line
+  printf("%d\n", file_lines);
   
+  for(int i = 0; i < id.size(); i++){
+      printf("%d : %s\n", (i+1), (id.at(i).c_str()));
+  }
+
   // insert the keys into the hash table
-  Hash h(7);   // 7 is count of buckets in
+  Hash h(file_lines + 1);   // 7 is count of buckets in
                // hash table
   for (int i = 0; i < n; i++)
     h.insertItem(a[i]);
