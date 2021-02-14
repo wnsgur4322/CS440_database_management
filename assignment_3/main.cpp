@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <fstream>
 #include <sstream>
-#include <string>
+#include <string.h>
 #include <vector>
 #include <functional>
 #include <math.h> 
@@ -358,9 +358,21 @@ void writeDataFile(Block* data) {
     
 }
 
-
 // Driver program
-int main(){
+int main(int argc, char* argv[]){
+	if((argc == 1) && (strcmp(argv[0], "C") == 0)){
+		cout << "Index creation mode" << endl;
+	}
+	else if((argc == 2) && (strcmp(argv[0], "L") == 0)){
+		cout << "Lookup mode" << endl;
+		string lookup_id = "";
+		lookup_id = argv[1];
+		cout << "Lookup ID is" << lookup_id << endl;
+	}
+	else{
+		cout << "ERROR: check your command line C for index creation, L [id] for lookup mode" << endl;
+		return 0;
+	}
   // array that contains keys to be mapped
   int a[] = {15, 11, 27, 8, 12};
   int n = sizeof(a)/sizeof(a[0]);
