@@ -358,6 +358,29 @@ void writeDataFile(Block* data) {
     
 }
 
+void lookup(string &lookup_id){
+	fstream in, f;
+	in.open("linear_hash_info.txt", iso::in);
+	string line, i, n;
+	getline(in,line);
+	i = line;
+	getline(in,line);
+	n = line;
+	bucket_num = lastIBits(hash(lookup_id), stoi(i), stoi(n));
+	
+	f.open("data.txt", iso::in);
+	int j = 0;
+	string line2;
+	while(getline(f,line2)){
+		if (bucket_num == j){
+			break;
+		}
+	}
+	cout << "The lookup id is in bucket number :" << bucket_num << endl;
+	cout << "The bucket included:" << endl;
+	cout << line2 << endl;
+}
+
 // Driver program
 int main(int argc, char* argv[]){
 	if((argc == 2) && (strcmp(argv[1], "C") == 0)){
@@ -384,6 +407,10 @@ int main(int argc, char* argv[]){
   Hash* h = new Hash(n);
   vector<Block> Blocks(n);
   read_csv(file_lines, id, name, bio, manager_id, sizes, h, i, n, &Blocks);
+
+	if(strcmp(argv[0], "L") == 0){
+		lookup(lookup_id);
+	}
 
   // checking vectors and the number of file line
   //printf("%d\n", file_lines);
