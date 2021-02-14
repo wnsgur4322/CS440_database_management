@@ -225,7 +225,7 @@ void calculateIandN(int& i, int& n, vector<Block>** Blocks, int index, vector<st
     }
     float percent_used = 0;
     int total_buckets = 0;
-    pri
+    printf("block size %d\n", (*Blocks)->size());
     for(int curr = 0; curr != (*Blocks)->size(); curr++) {
         int size = 0;
         int num_blocks = 1;
