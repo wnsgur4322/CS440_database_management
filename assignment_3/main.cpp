@@ -209,7 +209,7 @@ void add_record(string record, int index, vector<Block>* Blocks, int size) {
     rename("data_temp.txt","data.txt");
 }
 
-void calculateIandN(int& i, int& n, vector<Block>** Blocks, int index, vector<string> &id, vector<int> &sizes) {
+void calculateIandN(int& i, int& n, vector<Block>** Blocks, int index, vector<string> &id, vector<int> &sizes, int line_num) {
     //printf("Index %d\n", index);
     //printf("I %d\n", i);
     //printf("N %d\n", n);
@@ -223,9 +223,16 @@ void calculateIandN(int& i, int& n, vector<Block>** Blocks, int index, vector<st
         bucket_size += curr_block->size_used;
         num_blocks += 1;
     }
+    if(curr_block->size_used + sizes.at(line_num) > 4096) {
+        Block* new_block = new Block;
+        new_block->size_used = sizes.at(line_num);
+        curr_block->overflow = new_block;
+    } else {
+        curr_block->size_used += sizes.at(line_num);
+    }
     float percent_used = 0;
     int total_buckets = 0;
-    printf("block size %d\n", (*Blocks)->size());
+    //printf("block size %d\n", (*Blocks)->size());
     for(int curr = 0; curr != (*Blocks)->size(); curr++) {
         int size = 0;
         int num_blocks = 1;
@@ -241,32 +248,30 @@ void calculateIandN(int& i, int& n, vector<Block>** Blocks, int index, vector<st
         total_buckets += 1;
     }
     percent_used /= total_buckets;
-    printf("percent_used: %f\n", percent_used);
     if(percent_used > 0.8) {
         n++;
-        if(pow(i + 1,2) < n) {
+        if(pow(i,2) < n)
             i++;
-            vector<Block> new_blocks(n);
-            for(int curr = 0; curr < id.size(); curr++) {
-                int index = lastIBits(hashStr(id.at(curr)), i, n);
-                Block* curr_block = &(new_blocks.at(index));
-                if (curr_block->size_used + sizes.at(curr) > 4096) {
-                    while(curr_block->size_used + sizes.at(curr) > 4096) {
-                        if(curr_block->overflow) {
-                            curr_block = curr_block->overflow;
-                        } else {
-                            Block* new_block;
-                            curr_block->overflow = new_block;
-                            curr_block = curr_block->overflow;
-                        }
+        vector<Block> new_blocks(n);
+        for(int curr = 0; curr < id.size(); curr++) {
+            int index = lastIBits(hashStr(id.at(curr)), i, n);
+            Block* curr_block = &(new_blocks.at(index));
+            if (curr_block->size_used + sizes.at(curr) > 4096) {
+                while(curr_block->size_used + sizes.at(curr) > 4096) {
+                    if(curr_block->overflow) {
+                        curr_block = curr_block->overflow;
+                    } else {
+                        Block* new_block = new Block;
+                        curr_block->overflow = new_block;
+                        curr_block = curr_block->overflow;
                     }
                 }
-                curr_block->size_used += sizes.at(curr);
             }
-        
-        
-            (*Blocks) = &new_blocks;
+            curr_block->size_used += sizes.at(curr);
         }
+    
+    
+        (*Blocks) = &new_blocks;
     }
 }
 
@@ -309,7 +314,7 @@ void read_csv(int &file_lines, vector<string> &id, vector<string> &name, vector<
     
     for(int line_num = 0; line_num < num_lines; line_num++){
         int index = lastIBits(hashStr(id.at(line_num)), i, n);
-        calculateIandN(i, n, &Blocks, index, id, sizes);
+        calculateIandN(i, n, &Blocks, index, id, sizes, line_num);
     }
     
     fstream file ("data.txt", ios::out);
@@ -335,7 +340,11 @@ void read_csv(int &file_lines, vector<string> &id, vector<string> &name, vector<
         add_record(record, index, &written_blocks, sizes.at(line_num));
         
     }
-    printf("n:%d\n", n);
+    fstream hash_info("linear_hash_info.txt", ios::out);
+    hash_info << i;
+    hash_info << '\n';
+    hash_info << n;
+    hash_info.close();
 }
 
 void writeDataFile(Block* data) {
@@ -365,7 +374,7 @@ int main(){
   read_csv(file_lines, id, name, bio, manager_id, sizes, h, i, n, &Blocks);
 
   // checking vectors and the number of file line
-  printf("%d\n", file_lines);
+  //printf("%d\n", file_lines);
   
   //for(int i = 0; i < id.size(); i++){
   //    printf("%d : %s\n", (i+1), (id.at(i).c_str()));
@@ -382,9 +391,9 @@ int main(){
 
   // display the Hash table
   //h.displayHash();
-  int hash = hashStr("test1");
-  printf("%d\n", hash);
-  printf("%d\n", lastIBits(hash,2,n));
+  //int hash = hashStr("test1");
+  //printf("%d\n", hash);
+  //printf("%d\n", lastIBits(hash,2,n));
 
   //read_csv();
 
