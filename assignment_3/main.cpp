@@ -145,18 +145,17 @@ void add_record(string record, int index, vector<Block>* Blocks, int size) {
     int line_number = 0;
     string line;
     Block* it = &(Blocks->at(index));
-    fstream file ("data.txt", ios::app | ios::in);
-    file.seekg(0);
-    bool break_loop = false;
+    fstream file ("data.txt", ios::in);
+    fstream write_file ("data_temp.txt", ios::out);
     //printf("before\n");
     while(!file.eof()) {
         getline(file, line);
-        
+        write_file << line;
         //printf("in while loop\n");
         //printf("line num: %d, index: %d\n", line_number,index);
         //printf("line:");
-        printf(line.c_str());
-        printf("\n");
+        //printf(line.c_str());
+        //printf("\n");
         //if(file.eof())
         //    printf("reached end of file at line %d\n", line_number);
         if(line_number == index) {
@@ -168,36 +167,46 @@ void add_record(string record, int index, vector<Block>* Blocks, int size) {
                 bucket_size = curr_block->size_used;
                 num_blocks += 1;
             }
-            printf("curr size: %d, record size: %d\n", bucket_size, size);
+            //printf("curr size: %d, record size: %d\n", bucket_size, size);
             if(size + bucket_size > 4096) {
                 Block* new_block = new Block;
                 new_block->size_used = size;
                 curr_block->overflow = new_block;
+                /**
                 if(line.length() != 0) {
                     while(file.peek()!='\n') {
                         file.seekg(1, ios::cur);
                     }
-                }
-                printf("writing |%s\n", record.c_str());
-                file << "|" << record;
+                }**/
+                //write_file.seekg(-1, ios::cur);
+                //printf("writing |%s\n", record.c_str());
+                write_file << "|";
+                write_file << record;
+                //write_file.seekg(1, ios::cur);
             } else {
+                /**
                 if(line.length() != 0) {
                     while(file.peek()!='\n') {
                         printf("not newline2\n");
                         file.seekg(1, ios::cur);
                     }
                 }
+                **/
+                //write_file.seekg(-1, ios::cur);
                 curr_block->size_used += size;
-                printf("writing ;%s\n", record.c_str());
-                file << ";" << record;
+                //printf("writing ;%s\n", record.c_str());
+                write_file << record;
+                //write_file.seekg(1, ios::cur);
             }
-            break_loop = true;
         }
-        if(break_loop)
-            break;
+        if(!file.eof())
+            write_file << "\n";
         line_number++;
     }
     file.close();
+    write_file.close();
+    remove("data.txt");
+    rename("data_temp.txt","data.txt");
 }
 
 void calculateIandN(int& i, int& n, vector<Block>** Blocks, int index, vector<string> &id, vector<int> &sizes) {
@@ -216,6 +225,7 @@ void calculateIandN(int& i, int& n, vector<Block>** Blocks, int index, vector<st
     }
     float percent_used = 0;
     int total_buckets = 0;
+    pri
     for(int curr = 0; curr != (*Blocks)->size(); curr++) {
         int size = 0;
         int num_blocks = 1;
@@ -231,6 +241,7 @@ void calculateIandN(int& i, int& n, vector<Block>** Blocks, int index, vector<st
         total_buckets += 1;
     }
     percent_used /= total_buckets;
+    printf("percent_used: %f\n", percent_used);
     if(percent_used > 0.8) {
         n++;
         if(pow(i + 1,2) < n) {
@@ -287,7 +298,9 @@ void read_csv(int &file_lines, vector<string> &id, vector<string> &name, vector<
         id.push_back(temp.at(0));
         name.push_back(temp.at(1));
         bio.push_back(temp.at(2));
-        manager_id.push_back(temp.at(3));
+        string manager_id_str = temp.at(3);
+        manager_id_str.pop_back();
+        manager_id.push_back(manager_id_str);
         sizes.push_back(16 + temp.at(2).size() + temp.at(3).size());
         num_lines++;
     }
@@ -315,12 +328,14 @@ void read_csv(int &file_lines, vector<string> &id, vector<string> &name, vector<
         record.append(bio.at(line_num));
         record.append(",");
         record.append(manager_id.at(line_num));
+        record.append(";");
         //printf("record:");
         //printf(record.c_str());
         //printf("\n");
         add_record(record, index, &written_blocks, sizes.at(line_num));
         
     }
+    printf("n:%d\n", n);
 }
 
 void writeDataFile(Block* data) {
@@ -352,9 +367,9 @@ int main(){
   // checking vectors and the number of file line
   printf("%d\n", file_lines);
   
-  for(int i = 0; i < id.size(); i++){
-      printf("%d : %s\n", (i+1), (id.at(i).c_str()));
-  }
+  //for(int i = 0; i < id.size(); i++){
+  //    printf("%d : %s\n", (i+1), (id.at(i).c_str()));
+  //}
 
   // insert the keys into the hash table
   //Hash h(file_lines + 1);   // 7 is count of buckets in
