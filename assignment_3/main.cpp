@@ -141,40 +141,44 @@ int lastIBits(int hash, int i, int n) {
     return lastI;
 }
 
-void add_record(string record, int index, vector<Block>* Blocks) {
+void add_record(string record, int index, vector<Block>* Blocks, int size) {
     int line_number = 0;
     string line;
     Block* it = &(Blocks->at(index));
     fstream file ("data.txt", ios::app | ios::in);
     file.seekg(0);
+    bool break_loop = false;
     //printf("before\n");
     while(!file.eof()) {
         getline(file, line);
         
         //printf("in while loop\n");
-        printf("line num: %d, index: %d\n", line_number,index);
-        printf("line:");
+        //printf("line num: %d, index: %d\n", line_number,index);
+        //printf("line:");
         printf(line.c_str());
         printf("\n");
+        //if(file.eof())
+        //    printf("reached end of file at line %d\n", line_number);
         if(line_number == index) {
             int num_blocks = 1;
             Block* curr_block = it;
             int bucket_size = curr_block->size_used;
             while(curr_block->overflow != NULL) {
                 curr_block = curr_block->overflow;
-                bucket_size += curr_block->size_used;
+                bucket_size = curr_block->size_used;
                 num_blocks += 1;
             }
-            if(sizeof(record) + bucket_size > num_blocks*4096) {
+            printf("curr size: %d, record size: %d\n", bucket_size, size);
+            if(size + bucket_size > 4096) {
                 Block* new_block = new Block;
-                new_block->size_used = sizeof(record);
+                new_block->size_used = size;
                 curr_block->overflow = new_block;
                 if(line.length() != 0) {
                     while(file.peek()!='\n') {
                         file.seekg(1, ios::cur);
                     }
                 }
-                printf("writing1\n");
+                printf("writing |%s\n", record.c_str());
                 file << "|" << record;
             } else {
                 if(line.length() != 0) {
@@ -183,11 +187,14 @@ void add_record(string record, int index, vector<Block>* Blocks) {
                         file.seekg(1, ios::cur);
                     }
                 }
-                curr_block->size_used += sizeof(record);
-                printf("writing2\n");
+                curr_block->size_used += size;
+                printf("writing ;%s\n", record.c_str());
                 file << ";" << record;
             }
+            break_loop = true;
         }
+        if(break_loop)
+            break;
         line_number++;
     }
     file.close();
@@ -281,9 +288,10 @@ void read_csv(int &file_lines, vector<string> &id, vector<string> &name, vector<
         name.push_back(temp.at(1));
         bio.push_back(temp.at(2));
         manager_id.push_back(temp.at(3));
-        sizes.push_back(16 + ((int)sizeof(temp.at(2))) + ((int) sizeof(temp.at(3))));
+        sizes.push_back(16 + temp.at(2).size() + temp.at(3).size());
         num_lines++;
     }
+    f.close();
     
     
     for(int line_num = 0; line_num < num_lines; line_num++){
@@ -310,7 +318,7 @@ void read_csv(int &file_lines, vector<string> &id, vector<string> &name, vector<
         //printf("record:");
         //printf(record.c_str());
         //printf("\n");
-        add_record(record, index, &written_blocks);
+        add_record(record, index, &written_blocks, sizes.at(line_num));
         
     }
 }
@@ -322,6 +330,7 @@ void writeDataFile(Block* data) {
     
     // Wirte the data to the file
     out << data << "," << "\n";
+    out.close();
     
 }
 
