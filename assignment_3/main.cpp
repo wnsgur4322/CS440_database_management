@@ -383,14 +383,14 @@ void lookup(string &lookup_id){
 
 // Driver program
 int main(int argc, char* argv[]){
-	if((argc == 1) && (strcmp(argv[0], "C") == 0)){
+	if((argc == 2) && (strcmp(argv[1], "C") == 0)){
 		cout << "Index creation mode" << endl;
 	}
-	else if((argc == 2) && (strcmp(argv[0], "L") == 0)){
+	else if((argc == 3) && (strcmp(argv[1], "L") == 0)){
 		cout << "Lookup mode" << endl;
 		string lookup_id = "";
-		lookup_id = argv[1];
-		cout << "Lookup ID is" << lookup_id << endl;
+		lookup_id = argv[2];
+		cout << "Lookup ID is " << lookup_id << endl;
 	}
 	else{
 		cout << "ERROR: check your command line C for index creation, L [id] for lookup mode" << endl;

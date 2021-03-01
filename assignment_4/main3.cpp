@@ -13,8 +13,16 @@
 #include <vector>
 #include <functional>
 #include <math.h>
+#include <bits/stdc++.h> 
+#include <stdio.h> 
+#include <stdlib.h> 
+#include <sys/types.h> 
+#include <sys/stat.h> 
+#include <unistd.h> 
 
+//using std::filesystem::directory_iterator;
 using namespace std;
+
 
 struct EmpBlock {
     int eid;
@@ -86,21 +94,132 @@ void printJoin(EmpBlock emp, DeptBlock dept, fstream &fout) {
         << dept.budget << "\n";
 }
 
+bool compareEmp(EmpBlock lhs, EmpBlock rhs) {
+    return lhs.eid < rhs.eid;
+}
+
+bool compareDept(DeptBlock lhs, DeptBlock rhs) {
+    return lhs.managerid < rhs.managerid;
+}
+
+void writeRun(vector<EmpBlock>* employees, const char*csv_name) {
+    fstream run;
+    run.open(csv_name, ios::out);
+    printf("writing ");
+    printf(csv_name);
+    printf("\n");
+  
+    for(auto emp : *employees) {
+      run << emp.eid << ",";
+      run << emp.ename.c_str() << ",";
+      run << emp.age << ",";
+      run << emp.salary << "\n";
+    }
+    run.close();
+}
+void writeRun(vector<DeptBlock>* depts, const char*csv_name) {
+    fstream run;
+    run.open(csv_name, ios::out);
+    printf("writing ");
+    printf(csv_name);
+    printf("\n");
+  
+    for(auto dept : *depts) {
+      run << dept.did << ",";
+      run << dept.dname.c_str() << ",";
+      run << dept.budget << ",";
+      run << dept.managerid << "\n";
+    }
+    run.close();
+}
+
+void sortEmp(fstream& in) {
+  // flags check when relations are done being read
+  bool flag = true;
+  int i = 0;
+  while (flag) {
+    vector<EmpBlock> employees;
+    bool break_for = false;
+    for(int i = 0; i < 22; i++ && break_for == false) {
+        EmpBlock block = grabEmp(in);
+        if (block.eid == -1) {
+            flag = false;
+            break_for = true;;
+        } else {
+            employees.push_back(block);
+        }
+    }
+    if(employees.size() > 0) {
+        sort(employees.begin(), employees.end(), compareEmp);
+        string csv_name = "sort-merge/emp-run";
+        csv_name.append(to_string(i));
+        csv_name.append(".csv");
+        writeRun(&employees, csv_name.c_str());
+    }
+    i++;
+  }
+  
+}
+
+void sortDept(fstream& in) {
+  // flags check when relations are done being read
+  bool flag = true;
+  int i = 0;
+  while (flag) {
+    vector<DeptBlock> depts;
+    bool break_for = false;
+    for(int i = 0; i < 22; i++ && break_for == false) {
+        DeptBlock block = grabDept(in);
+        if (block.did == -1) {
+            flag = false;
+            break_for = true;;
+        } else {
+            depts.push_back(block);
+        }
+    }
+    if(depts.size() > 0) {
+        sort(depts.begin(), depts.end(), compareDept);
+        string csv_name = "sort-merge/dept-run";
+        csv_name.append(to_string(i));
+        csv_name.append(".csv");
+        writeRun(&depts, csv_name.c_str());
+    }
+    i++;
+  }
+  
+}
+
 int main() {
   // open file streams to read and write
+  char* dirname = "sort-merge";
+  int check; 
+  check = mkdir(dirname,0777); 
+  if (!check) {
+    printf("Directory created\n"); 
+  } else { 
+    printf("Directory already made\n");
+  }
   fstream empin;
+  empin.open("Emp.csv", ios::in);  
+  sortEmp(empin);
+  empin.close();
+  fstream deptin;
+  deptin.open("Dept.csv", ios::in);  
+  sortDept(deptin);
+  deptin.close();
+  return 0;
+  
   fstream joinout;
-  empin.open("Emp.csv", ios::in);
   joinout.open("Join.csv", ios::out | ios::app);
-  // flags check when relations are done being read
+  empin.open("Emp.csv", ios::in);
   bool flag = true;
   while (flag) {
       // FOR BLOCK IN RELATION EMP
 
       // grabs a block
-      EmpBlock empBlock = grabEmp(empin);
+      EmpBlock EmpBlock = grabEmp(empin);
       // checks if filestream is empty
-      if (empBlock.eid == -1) {
+      if (EmpBlock.eid == -1) {
           flag = false;
       }
       bool iflag = true;
@@ -111,14 +230,14 @@ int main() {
           // FOR BLOCK IN RELATION DEPT
           DeptBlock deptBlock = grabDept(deptin);
 
-          // in theory these would iterate through the two blocks: empBlock and deptBlock
+          // in theory these would iterate through the two blocks: EmpBlock and deptBlock
           // but since both only contain one tuple, no iteration is needed
           if (deptBlock.did == -1) {
               iflag = false;
           } else {
               // check join condition and print join to output file
-              if (deptBlock.managerid == empBlock.eid) {
-                  printJoin(empBlock, deptBlock, joinout);
+              if (deptBlock.managerid == EmpBlock.eid) {
+                  printJoin(EmpBlock, deptBlock, joinout);
               }
           }
       }
