@@ -19,6 +19,10 @@
 #include <sys/types.h> 
 #include <sys/stat.h> 
 #include <unistd.h> 
+#include <dirent.h>
+
+DIR *dir;
+struct dirent *ent;
 
 //using std::filesystem::directory_iterator;
 using namespace std;
@@ -62,6 +66,7 @@ EmpBlock grabEmp(fstream &empin) {
         emp.eid = -1;
         return emp;
     }
+  
 }
 
 // Grab a single block from the dept.csv file, in theory if a block was larger than
@@ -189,6 +194,154 @@ void sortDept(fstream& in) {
   
 }
 
+void print_dept_block(DeptBlock dept) {
+  cout << dept.did << ",";
+  cout << dept.dname << ",";
+  cout << dept.budget << ",";
+  cout << dept.managerid;
+  cout << endl;
+}
+
+void print_emp_block(EmpBlock emp) {
+  cout << emp.eid << ",";
+  cout << emp.ename << ",";
+  cout << emp.age << ",";
+  cout << emp.salary;
+  cout << endl;
+}
+
+void create_join() {
+  vector<string> emp_files;
+  vector<string> dept_files;
+  if ((dir = opendir ("sort-merge/")) != NULL) {
+    /* print all the files and directories within directory */
+    while ((ent = readdir (dir)) != NULL) {
+      string name = "sort-merge/";
+      name.append(ent->d_name);
+      if (name.find("emp") != string::npos) {
+        emp_files.push_back(name);
+      } else if (name.find("dept") != string::npos) {
+        dept_files.push_back(name);
+      }
+      
+    }
+    closedir (dir);
+  }
+  
+  bool flag = true;
+  vector<EmpBlock> employees;
+  vector<DeptBlock> depts;
+  vector<fstream*> emp_fstreams(emp_files.size());
+  vector<fstream*> dept_fstreams(dept_files.size());
+  int i = 0;
+  vector<istream::streampos> line_beginnings;
+  for(auto x: emp_files) {
+    emp_fstreams[i] = new fstream(x.c_str(), ios::in);
+    printf(x.c_str());
+    line_beginnings.push_back((*(emp_fstreams[i])).tellg());
+    employees.push_back(grabEmp(*(emp_fstreams[i])));
+    i++;
+  }
+  i = 0;
+  for(auto x: dept_files) {
+    dept_fstreams[i] = new fstream(x.c_str(), ios::in);
+    depts.push_back(grabDept(*(dept_fstreams[i])));
+    i++;
+  }
+  
+  fstream join_out;
+  join_out.open("Join.csv", ios::out);
+  int emps_left = employees.size();
+  int depts_left = depts.size();
+  while(emps_left != 0 and depts_left != 0 ) {
+    int lowest_id = numeric_limits<int>::max();
+    int lowest_emp_ind = -1;
+    int lowest_dept_ind = -1;
+    for(int i = 0; i < employees.size(); i++) {
+      EmpBlock curr_emp = employees.at(i);
+      if(curr_emp.eid != -1 and curr_emp.eid <lowest_id) {
+        lowest_id = curr_emp.eid;
+        lowest_emp_ind = i;
+      }
+    }
+    lowest_id = numeric_limits<int>::max();
+    for(int i = 0; i < depts.size(); i++) {
+      DeptBlock curr_dept = depts.at(i);
+      
+      if(curr_dept.did != -1 and curr_dept.managerid <lowest_id) {
+        lowest_id = curr_dept.managerid;
+        lowest_dept_ind = i;
+      }
+    }
+    if(employees.at(lowest_emp_ind).eid < depts.at(lowest_dept_ind).managerid) {
+      employees.erase(employees.begin() + lowest_emp_ind);
+      fstream* file = emp_fstreams.at(lowest_emp_ind);
+      cout << "tellg val: " << (*file).tellg() << endl;
+      line_beginnings[i] = (*file).tellg();
+      EmpBlock new_block = grabEmp(*file);
+      if(new_block.eid == -1)
+        emps_left--;
+      employees.insert(employees.begin() + lowest_emp_ind, new_block);
+      printf("emp ind < manager: ");
+      print_emp_block(new_block);
+    } else if(employees.at(lowest_emp_ind).eid > depts.at(lowest_dept_ind).managerid) {
+      depts.erase(depts.begin() + lowest_dept_ind);
+      fstream* file = dept_fstreams.at(lowest_dept_ind);
+      DeptBlock new_block = grabDept(*file);
+      if(new_block.did == -1)
+        depts_left--;
+      depts.insert(depts.begin() + lowest_dept_ind, new_block);
+      
+      file = emp_fstreams.at(lowest_emp_ind);
+      
+      printf("emp ind > manager: ");
+      print_emp_block(employees.at(lowest_emp_ind));
+      //print_dept_block(new_block);
+    } else {
+      printf("curr: ");
+      print_emp_block(employees.at(lowest_emp_ind));
+      fstream* file_temp = emp_fstreams[lowest_emp_ind];
+      cout << "tellg val for lowest: " << (*file_temp).tellg() << endl;
+      while(employees.at(lowest_emp_ind).eid == depts.at(lowest_dept_ind).managerid) {
+        DeptBlock dept_block = depts.at(lowest_dept_ind);
+        EmpBlock emp_block = employees.at(lowest_emp_ind);
+        join_out << dept_block.did << ",";
+        join_out << dept_block.dname << ",";
+        join_out << dept_block.budget << ",";
+        join_out << dept_block.managerid << ",";
+        join_out << emp_block.eid << ",";
+        join_out << emp_block.ename << ",";
+        join_out << emp_block.age << ",";
+        join_out << emp_block.salary << "\n";
+        employees.erase(employees.begin() + lowest_emp_ind);
+        fstream* file = emp_fstreams.at(lowest_emp_ind);
+        EmpBlock new_block = grabEmp(*file);
+        employees.insert(employees.begin() + lowest_emp_ind, new_block);
+      }
+      fstream* file = emp_fstreams[lowest_emp_ind];
+      (*file).seekg(line_beginnings[lowest_emp_ind]);
+      EmpBlock new_emp_block = grabEmp(*file);
+      print_emp_block(new_emp_block);
+      employees.erase(employees.begin() + lowest_emp_ind);
+      employees.insert(employees.begin() + lowest_emp_ind, new_emp_block);
+      
+      depts.erase(depts.begin() + lowest_dept_ind);
+      file = dept_fstreams.at(lowest_dept_ind);
+      DeptBlock new_dept_block = grabDept(*file);
+      if(new_dept_block.did == -1)
+        depts_left--;
+      depts.insert(depts.begin() + lowest_dept_ind, new_dept_block);
+    }
+  }
+  join_out.close();
+  for(auto x: emp_fstreams) {
+   (*x).close();
+  }
+  for(auto x: dept_fstreams) {
+    (*x).close();
+  }
+}
+
 int main() {
   // open file streams to read and write
   char* dirname = "sort-merge";
@@ -207,41 +360,6 @@ int main() {
   deptin.open("Dept.csv", ios::in);  
   sortDept(deptin);
   deptin.close();
-  return 0;
-  
-  fstream joinout;
-  joinout.open("Join.csv", ios::out | ios::app);
-  empin.open("Emp.csv", ios::in);
-  bool flag = true;
-  while (flag) {
-      // FOR BLOCK IN RELATION EMP
-
-      // grabs a block
-      EmpBlock EmpBlock = grabEmp(empin);
-      // checks if filestream is empty
-      if (EmpBlock.eid == -1) {
-          flag = false;
-      }
-      bool iflag = true;
-      // opens new filestream for dept relation (needs to read in a new one each time a new emp block is seen)
-      fstream deptin;
-      deptin.open("Dept.csv", ios::in);
-      while (iflag) {
-          // FOR BLOCK IN RELATION DEPT
-          DeptBlock deptBlock = grabDept(deptin);
-
-          // in theory these would iterate through the two blocks: EmpBlock and deptBlock
-          // but since both only contain one tuple, no iteration is needed
-          if (deptBlock.did == -1) {
-              iflag = false;
-          } else {
-              // check join condition and print join to output file
-              if (deptBlock.managerid == EmpBlock.eid) {
-                  printJoin(EmpBlock, deptBlock, joinout);
-              }
-          }
-      }
-  }
-
+  create_join();
   return 0;
 }
