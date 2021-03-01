@@ -1,6 +1,8 @@
 {
         "files.associations": {
                 "cstdio": "cpp",
-                "list": "cpp"
+                "list": "cpp",
+                "fstream": "cpp",
+                "iosfwd": "cpp"
         }
 }

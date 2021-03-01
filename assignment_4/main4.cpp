@@ -20,16 +20,14 @@ struct EmpBlock {
     int eid;
     string ename;
     int age;
-    double salary;
-};
+    int salary;
+    string fline;
 
-struct DeptBlock {
-    int did;
-    string dname;
-    double budget;
-    int managerid;
+    bool operator > (const EmpBlock& str) const
+    {
+        return (str.eid > eid);
+    }
 };
-
 
 // Grab a single block from the emp.csv file, in theory if a block was larger than
 // one tuple, this function would return an array of EmpBlocks and the entire if
@@ -39,6 +37,7 @@ EmpBlock grabEmp(fstream &empin) {
     EmpBlock emp;
     // grab entire line
     if (getline(empin, line, '\n')) {
+        emp.fline = line;
         // turn line into a stream
         stringstream s(line);
         // gets everything in stream up to comma
@@ -55,36 +54,6 @@ EmpBlock grabEmp(fstream &empin) {
         emp.eid = -1;
         return emp;
     }
-}
-
-// Grab a single block from the dept.csv file, in theory if a block was larger than
-// one tuple, this function would return an array of DeptBlocks and the entire if
-// and else statement would be wrapped in a loop for x times based on block size
-DeptBlock grabDept(fstream &deptin) {
-    string line, word;
-    DeptBlock dept;
-    if (getline(deptin, line, '\n')) {
-        stringstream s(line);
-        getline(s, word,',');
-        dept.did = stoi(word);
-        getline(s, word, ',');
-        dept.dname = word;
-        getline(s, word, ',');
-        dept.budget = stod(word);
-        getline(s, word, ',');
-        dept.managerid = stoi(word);
-        return dept;
-    } else {
-        dept.did = -1;
-        return dept;
-    }
-}
-
-//Print out the attributes from emp and dept when a join condition is met
-void printJoin(EmpBlock emp, DeptBlock dept, fstream &fout) {
-    fout << emp.eid << ',' << emp.ename << ',' << emp.age << ','
-        << emp.salary << ',' << dept.did << ',' << dept.dname << ','
-        << dept.budget << "\n";
 }
 
 int main() {
@@ -124,46 +93,87 @@ int main() {
 
   int tuple_size = 0;
   int iter_i = 0;
-  string word;
-  vector<string> data;
+  string line, word;
+  vector<EmpBlock> data;
   ofstream empout;
 
   while(!empin.eof()){
-      empin >> word;
-      if((tuple_size + word.size()) < total_mem){
-          data.push_back(word);
+    EmpBlock emp;
+    // grab entire line
+    if (getline(empin, line, '\n')) {
+        emp.fline = line;
+        // turn line into a stream
+        stringstream s(line);
+        // gets everything in stream up to comma
+        getline(s, word,',');
+        emp.eid = stoi(word);
+        getline(s, word, ',');
+        emp.ename = word;
+        getline(s, word, ',');
+        emp.age = stoi(word);
+        getline(s, word, ',');
+        emp.salary = stod(word);
+    }
+
+      if((tuple_size + line.size()) < total_mem){
+          data.push_back(emp);
           tuple_size++;
-          tuple_size += word.size();
+          tuple_size += line.size();
       }
       else{
-          sort(data.begin(), data.end());
+          sort(data.begin(), data.end(), greater<EmpBlock>());
           empout.open(iters[iter_i].c_str());
 
           int data_size = data.size();
 
           for(int i = 0; i < (data_size - 1); i++){
-              empout << data[i];
-              empout << " ";
+              empout << data[i].eid;
+              empout << ",";
+              empout << data[i].ename;
+              empout << ",";
+              empout << data[i].age;
+              empout << ",";
+              empout << data[i].salary;
+              empout << "\n";
 
           }
-          empout << data[data_size - 1];
+          empout << data[data_size - 1].eid;
+          empout << ",";
+          empout << data[data_size - 1].ename;
+          empout << ",";
+          empout << data[data_size - 1].age;
+          empout << ",";
+          empout << data[data_size - 1].salary;
           empout.close();
           data.clear();
           iter_i++;
-          data.push_back(word);
-          tuple_size = word.size();
+          data.push_back(emp);
+          tuple_size = line.size();
       }
   }
+  //printf("%i\n", emp.eid);
   
   if(data.size() > 0){
-      sort(data.begin(), data.end());
+      sort(data.begin(), data.end(), greater<EmpBlock>());
       empout.open(iters[iter_i].c_str());
       int data_size = data.size();
       for(int i = 0; i < (data_size - 1); i++){
-          empout << data[i];
-          empout << " ";
+            empout << data[i].eid;
+            empout << ",";
+            empout << data[i].ename;
+            empout << ",";
+            empout << data[i].age;
+            empout << ",";
+            empout << data[i].salary;
+            empout << "\n";
       }
-      empout << data[data_size - 1];
+      empout << data[data_size - 1].eid;
+      empout << ",";
+      empout << data[data_size - 1].ename;
+      empout << ",";
+      empout << data[data_size - 1].age;
+      empout << ",";
+      empout << data[data_size - 1].salary;
       empout.close();
       data.clear();
       iter_i++;
@@ -201,7 +211,7 @@ int main() {
   else{
       for(int i = iter_count; i < iter_count + future_iter_num; i++){
           stringstream ss;
-          ss << "ter_" << i << ".csv";
+          ss << "iter_" << i << ".csv";
           iter = ss.str();
           iters.push_back(iter);
       }
@@ -223,13 +233,14 @@ int main() {
   int blocks;
   vector<int> start_pts;
   vector<int> end_pts;
+  int min_id;
   string min_str;
 
   for(int j = 0; j < pass_iter.size(); j++){
       begin = cur_read_i;
       start = begin;
       end = cur_write_i - 1;
-      cout << "PASS " << j + 1 << "is working ..." << endl;
+      cout << "PASS " << j + 1 << " is working ..." << endl;
 
       while(start <= end){
           if(((end + 1) - start) / (mem_blocks - 1) >= 1){
@@ -240,19 +251,36 @@ int main() {
           }
           start += blocks;
 
-          int word_counter = 0;
+          int line_counter = 0;
 
           for(int i = 0; i < blocks; i++){
               empin.open(iters[cur_read_i].c_str());
-              start_pts.push_back(word_counter);
+              start_pts.push_back(line_counter);
 
               while(!empin.eof()){
-                  empin >> word;
-                  data.push_back(word);
-                  word_counter++;
+                  EmpBlock emp;
+                  // grab entire line
+                  if (getline(empin, line, '\n')) {
+                      emp.fline = line;
+                      // turn line into a stream
+                      stringstream s(line);
+                      // gets everything in stream up to comma
+                      getline(s, word,',');
+                      emp.eid = stoi(word);
+                      getline(s, word, ',');
+                      emp.ename = word;
+                      getline(s, word, ',');
+                      emp.age = stoi(word);
+                      getline(s, word, ',');
+                      emp.salary = stod(word);
+                      }
+                  //empin >> line;
+                  data.push_back(emp);
+                  line_counter++;
               }
+              
 
-              end_pts.push_back(word_counter - 1);
+              end_pts.push_back(line_counter - 1);
               empin.close();
               cur_read_i++;
         }
@@ -268,14 +296,16 @@ int main() {
             while(start_pts[cur_pt_i] == end_pts[cur_pt_i]){
                 cur_pt_i++;
             }
-            min_str = data[start_pts[cur_pt_i]];
+            min_id = data[start_pts[cur_pt_i]].eid;
+            min_str = data[start_pts[cur_pt_i]].fline;
             min_i = cur_pt_i;
             while(cur_pt_i < start_pts.size()){
                 if(start_pts[cur_pt_i] == end_pts[cur_pt_i]){
                     cur_pt_i++;
                 }
-                else if(min_str.compare(data[start_pts[cur_pt_i]]) > 0){
-                    min_str = data[start_pts[cur_pt_i]];
+                else if(min_id > data[start_pts[cur_pt_i]].eid){
+                    min_id = data[start_pts[cur_pt_i]].eid;
+                    min_str = data[start_pts[cur_pt_i]].fline;
                     min_i = cur_pt_i;
                     cur_pt_i++;
                 }
@@ -284,7 +314,7 @@ int main() {
                 }
             }
             empout << min_str;
-            empout << " ";
+            empout << "\n";
             start_pts[min_i] = start_pts[min_i] + 1;
             start_sum++;
         }
