@@ -110,9 +110,9 @@ bool compareDept(DeptBlock lhs, DeptBlock rhs) {
 void writeRun(vector<EmpBlock>* employees, const char*csv_name) {
     fstream run;
     run.open(csv_name, ios::out);
-    printf("writing ");
-    printf(csv_name);
-    printf("\n");
+    //printf("writing ");
+    //printf(csv_name);
+    //printf("\n");
   
     for(auto emp : *employees) {
       run << emp.eid << ",";
@@ -125,9 +125,9 @@ void writeRun(vector<EmpBlock>* employees, const char*csv_name) {
 void writeRun(vector<DeptBlock>* depts, const char*csv_name) {
     fstream run;
     run.open(csv_name, ios::out);
-    printf("writing ");
-    printf(csv_name);
-    printf("\n");
+    //printf("writing ");
+    //printf(csv_name);
+    //printf("\n");
   
     for(auto dept : *depts) {
       run << dept.did << ",";
@@ -237,7 +237,7 @@ void create_join() {
   vector<istream::streampos> line_beginnings;
   for(auto x: emp_files) {
     emp_fstreams[i] = new fstream(x.c_str(), ios::in);
-    printf(x.c_str());
+    //printf(x.c_str());
     line_beginnings.push_back((*(emp_fstreams[i])).tellg());
     employees.push_back(grabEmp(*(emp_fstreams[i])));
     i++;
@@ -276,14 +276,14 @@ void create_join() {
     if(employees.at(lowest_emp_ind).eid < depts.at(lowest_dept_ind).managerid) {
       employees.erase(employees.begin() + lowest_emp_ind);
       fstream* file = emp_fstreams.at(lowest_emp_ind);
-      cout << "tellg val: " << (*file).tellg() << endl;
-      line_beginnings[i] = (*file).tellg();
+      //cout << "tellg val: " << (*file).tellg() << endl;
+      line_beginnings[lowest_emp_ind] = (*file).tellg();
       EmpBlock new_block = grabEmp(*file);
       if(new_block.eid == -1)
         emps_left--;
       employees.insert(employees.begin() + lowest_emp_ind, new_block);
-      printf("emp ind < manager: ");
-      print_emp_block(new_block);
+      //printf("emp ind < manager: ");
+      //print_emp_block(new_block);
     } else if(employees.at(lowest_emp_ind).eid > depts.at(lowest_dept_ind).managerid) {
       depts.erase(depts.begin() + lowest_dept_ind);
       fstream* file = dept_fstreams.at(lowest_dept_ind);
@@ -294,14 +294,14 @@ void create_join() {
       
       file = emp_fstreams.at(lowest_emp_ind);
       
-      printf("emp ind > manager: ");
-      print_emp_block(employees.at(lowest_emp_ind));
+      //printf("emp ind > manager: ");
+      //print_emp_block(employees.at(lowest_emp_ind));
       //print_dept_block(new_block);
     } else {
-      printf("curr: ");
-      print_emp_block(employees.at(lowest_emp_ind));
+      //printf("curr: ");
+      //print_emp_block(employees.at(lowest_emp_ind));
       fstream* file_temp = emp_fstreams[lowest_emp_ind];
-      cout << "tellg val for lowest: " << (*file_temp).tellg() << endl;
+      //cout << "tellg val for lowest: " << (*file_temp).tellg() << endl;
       while(employees.at(lowest_emp_ind).eid == depts.at(lowest_dept_ind).managerid) {
         DeptBlock dept_block = depts.at(lowest_dept_ind);
         EmpBlock emp_block = employees.at(lowest_emp_ind);
@@ -316,17 +316,28 @@ void create_join() {
         employees.erase(employees.begin() + lowest_emp_ind);
         fstream* file = emp_fstreams.at(lowest_emp_ind);
         EmpBlock new_block = grabEmp(*file);
+        //print_emp_block(new_block);
         employees.insert(employees.begin() + lowest_emp_ind, new_block);
+        lowest_id = numeric_limits<int>::max();
+        for(int i = 0; i < employees.size(); i++) {
+          EmpBlock curr_emp = employees.at(i);
+          if(curr_emp.eid != -1 and curr_emp.eid < lowest_id) {
+            lowest_id = curr_emp.eid;
+            lowest_emp_ind = i;
+          }
+        }
       }
-      fstream* file = emp_fstreams[lowest_emp_ind];
-      (*file).seekg(line_beginnings[lowest_emp_ind]);
-      EmpBlock new_emp_block = grabEmp(*file);
-      print_emp_block(new_emp_block);
-      employees.erase(employees.begin() + lowest_emp_ind);
-      employees.insert(employees.begin() + lowest_emp_ind, new_emp_block);
-      
+      //Resets employees vector
+      for(int i = 0; i < line_beginnings.size(); i++) {
+        fstream* file = emp_fstreams[i];
+        (*file).seekg(line_beginnings[i]);
+        EmpBlock new_emp_block = grabEmp(*file);
+        //print_emp_block(new_emp_block);
+        employees.erase(employees.begin() + i);
+        employees.insert(employees.begin() + i, new_emp_block);
+      }
       depts.erase(depts.begin() + lowest_dept_ind);
-      file = dept_fstreams.at(lowest_dept_ind);
+      fstream* file = dept_fstreams.at(lowest_dept_ind);
       DeptBlock new_dept_block = grabDept(*file);
       if(new_dept_block.did == -1)
         depts_left--;
@@ -348,9 +359,9 @@ int main() {
   int check; 
   check = mkdir(dirname,0777); 
   if (!check) {
-    printf("Directory created\n"); 
+    printf("sort-merge directory created\n"); 
   } else { 
-    printf("Directory already made\n");
+    printf("sort-merge directory already made\n");
   }
   fstream empin;
   empin.open("Emp.csv", ios::in);  
