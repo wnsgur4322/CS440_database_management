@@ -65,7 +65,7 @@ int main() {
 
   // open file streams to read and write
   ifstream empin;
-  empin.open("4_4-sample_data/Emp.csv");
+  empin.open("Emp.csv");
   empin.seekg(0, empin.end);
   int empin_size = empin.tellg();
   empin.seekg(0, empin.beg);
@@ -324,12 +324,12 @@ int main() {
         start_pts.clear();
         end_pts.clear();
       }
-      cout << "PASS " << j + 1 << "has finished" << endl;
+      cout << "PASS " << j + 1 << " has finished" << endl;
   }
 
 
 	// Size of the input file:
-    string input_file = "4_4-sample_data/Emp.csv";
+    string input_file = "Emp.csv";
 	empin.open(input_file.c_str());
 	empin.seekg (0, empin.end);
     int filesize = empin.tellg();
